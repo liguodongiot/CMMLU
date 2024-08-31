@@ -10,34 +10,33 @@ from time import sleep
 from transformers import AutoTokenizer, AutoModel
 import re
 
-
-url = "http://10.xxx.2.145:9009/v1/chat/completions"
-
-# tokenizer = AutoTokenizer.from_pretrained("/workspace/models/Qwen1.5-7B-Chat", trust_remote_code=True)
+url = "http://10.xxx.2.145:8400/v2/models/ensemble/generate"
 
 def get_response(inputs):
     timeout_counter = 0
     completion = None
     while completion is None and timeout_counter<=30:
         try:
-            messages = [
-                {"role": "user", "content": inputs}
-                ]
+            
+            content = inputs
             payload = {
-                "model": "qwen1.5",
-                "messages": messages,
-                "max_tokens": 256,
-                "top_p": 0.95,
-                "seed": 100,
-                "temperature": 0.8,
-                "stream": False
+                "text_input": f"<|im_start|>system\nYou are a helpful assistant<|im_end|>\n<|im_start|>user\n{content}<|im_end|>\n<|im_start|>assistant\n",
+                "parameters": {
+                    "max_tokens": 256,
+                    "bad_words": [""],
+                    "stop_words": [""],
+                    "top_p": 0.95,
+                    "temperature": 0.8,
+                    "random_seed": 100,
+                    "return_log_probs": True
+                }
             }
-        
+            
             headers = {"content-type": "application/json"}
             response = requests.request("POST", url, json=payload, headers=headers)
             # print(response.text)
             response_json = json.loads(response.text)
-            response_str = response_json['choices'][0]['message']['content']
+            response_str = response_json['text_output']
             return response_str
         except Exception as msg:
             if "timeout=600" in str(msg):
@@ -128,6 +127,7 @@ def extract_ans(response_str):
             else:
                 break
         return ans_list
+
 
 
 
